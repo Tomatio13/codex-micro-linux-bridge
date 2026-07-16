@@ -39,21 +39,56 @@ Stream Deck:
   the dial the Codex Micro's "think depth" encoder maps to)
 - The ChatGPT desktop app with the Codex Micro integration enabled
 
-## Quick start
+## Two ways to make the app see the device
+
+The device half can be provided two ways. They share the entire bridge —
+emulator, Stream Deck backend, socket protocol — and differ only in how the
+ChatGPT app is made to see a Codex Micro.
+
+| | **Shim mode** (works today) | **Helper mode** (proper) |
+| --- | --- | --- |
+| Mechanism | injects a `node-hid` shim into the app | real IOKit virtual HID device |
+| Needs | nothing special | Apple `com.apple.developer.hid.virtual.device` entitlement |
+| App files | untouched (env-var injection) | untouched |
+| Distributable | no (per-machine) | yes (notarized) |
+| Caveat | must launch the app via a wrapper; breaks if the app changes | needs Apple approval + signing |
+
+Use **shim mode** now; switch to **helper mode** once Apple grants the
+entitlement (the native helper is already built for it).
+
+### Shim mode (recommended to start)
 
 ```bash
 npm install                       # optional deps: stream-deck lib, sharp, lucide
-npm run build:native              # compiles the Swift helper
-./scripts/start.sh                # builds if needed, runs helper (sudo) + bridge
+
+# 1) Start the bridge (it listens for the shim):
+node bin/codex-micro-emulator.js --mode shim        # add --input keyboard to test hands-free
+
+# 2) In another terminal, launch the app with the shim injected:
+./shim/launch-chatgpt.sh
 ```
 
-`start.sh` runs the helper under `sudo` (see [caveats](#macos-virtual-hid-caveats)),
-waits for the virtual device, then starts the bridge. To test without a Stream
-Deck attached, add `--input keyboard` and drive it from the terminal.
+The launcher sets `NODE_OPTIONS=--require shim/preload.cjs` and execs the app
+binary directly (macOS's `open` won't propagate the env var). Your app's Electron
+fuses allow `EnableNodeOptionsEnvironmentVariable`, so this needs no file changes
+and doesn't touch the app's signature. Diagnostics go to `shim.log`
+(`CODEX_MICRO_SHIM_LOG`). The app should now detect a "Codex Micro".
 
-Once running, the ChatGPT app should detect a "Codex Micro". Press keys / turn
-the dial on your Stream Deck and watch the app react; start agent tasks and watch
-the keys change color.
+> Shim mode injects code into the ChatGPT process. It only works because the
+> app's fuses permit `NODE_OPTIONS`, and it may break on app updates. It's for
+> personal/interoperability use on your own machine.
+
+### Helper mode (once you have the entitlement)
+
+```bash
+npm run build:native              # compiles the Swift IOKit helper
+./scripts/start.sh                # runs helper (needs the entitlement) + bridge
+```
+
+To test without a Stream Deck attached, add `--input keyboard` to either mode and
+drive it from the terminal. Once running, press keys / turn the dial on your
+Stream Deck and watch the app react; start agent tasks and watch the keys change
+color.
 
 ## Your Stream Deck
 
@@ -102,25 +137,34 @@ name — see `src/keycaps.js`. Drop your own SVGs in `assets/icons/` to override
 Icon rendering uses the optional `sharp` + `lucide-static` dependencies. Without
 them the bridge still runs and falls back to solid color fills.
 
-## macOS virtual-HID caveats
+## macOS virtual-HID caveats (helper mode)
 
-Creating an `IOHIDUserDevice` is the one genuinely fiddly part:
+On macOS 26 (Apple Silicon), creating an `IOHIDUserDevice` is gated by a
+**restricted entitlement**, confirmed empirically:
 
-1. **Root.** On current macOS the helper almost always needs `sudo`. `start.sh`
-   does this for you.
-2. **Entitlement.** If creation still fails, macOS wants the
-   `com.apple.developer.hid.virtual.device` entitlement on a **signed** binary.
-   Request it from Apple, then:
-   ```bash
-   codesign --sign "Developer ID Application: …" \
-     --entitlements native/CodexMicroVirtualHID/entitlements.plist \
-     native/CodexMicroVirtualHID/CodexMicroVirtualHID
-   ```
-   The helper prints this guidance itself if it exits with a creation error.
+- Running as **root is not sufficient** — `IOHIDUserDeviceCreateWithProperties`
+  returns `nil` without the entitlement.
+- **Ad-hoc signing the entitlement doesn't work** — AMFI SIGKILLs the process at
+  launch (exit 137). The entitlement is only honored from a genuine Apple-issued
+  provisioning profile.
 
-There is no way around presenting a real IOKit HID device — the app enumerates
-via `node-hid`/IOKit and matches on the vendor usage page, so a pure-userspace
-shim without the driver won't be seen.
+So helper mode needs `com.apple.developer.hid.virtual.device`, granted by Apple:
+
+1. Request it at the Apple entitlement form — the dropdown option is literally
+   **"Virtual HID"** (= `com.apple.developer.hid.virtual.device`).
+2. Create an App ID with that capability and a Developer ID provisioning profile
+   embedding it. A standalone CLI can't carry a profile, so wrap the helper in a
+   minimal background `.app` bundle (embeds `embedded.provisionprofile`).
+3. Sign (Developer ID + `entitlements.plist.template`), notarize, staple.
+
+The helper prints this guidance itself if creation fails. There's no pure-
+userspace way to present a real IOKit HID device — which is exactly why **shim
+mode** exists as the no-entitlement alternative.
+
+If Apple's reviewer steers you to DriverKit instead, the equivalent set is
+`com.apple.developer.driverkit` + `com.apple.developer.driverkit.transport.hid`
+(a larger build); prefer the Virtual HID entitlement since the existing helper
+already targets it.
 
 ## Development
 
@@ -138,12 +182,14 @@ the protocol without a Stream Deck or the virtual device.
 | Piece                              | State                                        |
 | ---------------------------------- | -------------------------------------------- |
 | JSON-RPC protocol + framing        | ✅ verified by `npm test`                    |
+| node-hid shim (discovery + I/O)    | ✅ verified by `npm test` (real socket)      |
 | Native helper compiles (real SDK)  | ✅ builds with `swiftc`                       |
-| Virtual device created at runtime  | ⚠️ needs your Mac (root/entitlement)         |
+| Shim end-to-end in the real app    | ⚠️ needs your Mac + the ChatGPT app          |
+| Helper virtual device at runtime   | ⚠️ blocked on the Apple entitlement          |
 | Stream Deck keys/dial/LCD          | ⚠️ needs the physical device to validate     |
 
-The protocol layer and the native build are validated here; the two hardware
-paths are wired up but want on-device testing — PRs welcome.
+The protocol layer, the shim's device emulation, and the native build are
+validated here; the remaining paths want on-device testing — PRs welcome.
 
 ## Legal
 

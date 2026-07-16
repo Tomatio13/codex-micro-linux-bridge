@@ -5,16 +5,24 @@ import os from "node:os";
 import { CodexMicroEmulator } from "../src/emulator.js";
 import { Link } from "../src/link.js";
 import { SocketTransport } from "../src/transports/socket.js";
+import { SocketServerTransport } from "../src/transports/socket-server.js";
 import { StreamDeckBackend } from "../src/streamdeck.js";
 import { KeyboardInput } from "../src/keyboard-input.js";
 
 const DEFAULT_SOCKET = path.join(os.tmpdir(), "codex-micro-vhid.sock");
 
 function parseArgs(argv) {
-  const opts = { input: "streamdeck", socket: DEFAULT_SOCKET, battery: 100, verbose: false };
+  const opts = {
+    input: "streamdeck",
+    mode: "helper",
+    socket: DEFAULT_SOCKET,
+    battery: 100,
+    verbose: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--input") opts.input = argv[++i];
+    else if (a === "--mode") opts.mode = argv[++i];
     else if (a === "--socket") opts.socket = argv[++i];
     else if (a === "--battery") opts.battery = Number(argv[++i]);
     else if (a === "--verbose" || a === "-v") opts.verbose = true;
@@ -34,15 +42,18 @@ Usage:
   codex-micro-emulator [options]
 
 Options:
+  --mode <helper|shim>           How the app reaches us (default: helper)
+                                   helper: connect to the native IOKit helper
+                                   shim:   listen for the in-app node-hid shim
   --input <streamdeck|keyboard>  Physical input source (default: streamdeck)
-  --socket <path>                Unix socket the native helper listens on
-                                 (default: ${DEFAULT_SOCKET})
+  --socket <path>                Unix socket path (default: ${DEFAULT_SOCKET})
   --battery <0-100>              Reported battery level (default: 100)
   -v, --verbose                  Log every RPC request/response
   -h, --help                     Show this help
 
-The native helper (native/CodexMicroVirtualHID) must be running first; it owns
-the virtual USB HID device that the ChatGPT app detects. See the README.`);
+helper mode: start native/CodexMicroVirtualHID first (it owns the virtual USB
+HID device). shim mode: start this bridge first, then launch the app via
+shim/launch-chatgpt.sh. See the README.`);
 }
 
 async function main() {
@@ -60,16 +71,32 @@ async function main() {
     if (opts.verbose) console.error("[lighting]", JSON.stringify(m));
   });
 
-  // Transport: connect to the native helper's socket.
-  const transport = new SocketTransport(opts.socket);
-  try {
-    await transport.connect();
-  } catch (err) {
-    console.error(`Could not connect to the virtual-HID helper at ${opts.socket}.`);
-    console.error(`Is it running?  ${err.message}`);
-    process.exit(1);
+  // Transport: either connect to the native helper (helper mode) or listen for
+  // the in-app node-hid shim to connect (shim mode).
+  let transport;
+  if (opts.mode === "shim") {
+    transport = new SocketServerTransport(opts.socket);
+    try {
+      await transport.listen();
+    } catch (err) {
+      console.error(`Could not listen on ${opts.socket}: ${err.message}`);
+      process.exit(1);
+    }
+    transport.on("open", () => console.error("Shim connected."));
+    transport.on("client-close", () => console.error("Shim disconnected (waiting for reconnect)."));
+    console.error(`Listening for the node-hid shim on ${opts.socket}.`);
+    console.error("Now launch the app:  ./shim/launch-chatgpt.sh");
+  } else {
+    transport = new SocketTransport(opts.socket);
+    try {
+      await transport.connect();
+    } catch (err) {
+      console.error(`Could not connect to the virtual-HID helper at ${opts.socket}.`);
+      console.error(`Is it running?  ${err.message}`);
+      process.exit(1);
+    }
+    console.error(`Connected to virtual-HID helper at ${opts.socket}.`);
   }
-  console.error(`Connected to virtual-HID helper at ${opts.socket}.`);
   // eslint-disable-next-line no-new -- Link wires emulator<->transport via events
   new Link(emulator, transport);
 
