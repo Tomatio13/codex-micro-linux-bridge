@@ -5,4 +5,3 @@ native/CodexMicroVirtualHID/*.o
 native/CodexMicroVirtualHID/*.dSYM/
 *.log
 .DS_Store
-.DS_Store
