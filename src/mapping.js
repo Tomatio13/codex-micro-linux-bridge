@@ -26,10 +26,12 @@ function fullLayout() {
 }
 
 /**
- * Stream Deck + layout (8 keys, 2×4): top row = agent slots 0–3, bottom row =
- * the four most useful action keys. Agent slots 4–5 don't fit on the keys, so
- * they live on the LCD touchstrip instead (see `lcdSlots`). Dial 0 is the
- * "think depth" encoder.
+ * Stream Deck + layout (8 keys, 2×4):
+ *   top row    = agent status slots 0–3 (colored keys with a center dot)
+ *   bottom row = the four action keys Fast / Approve / Reject / Split
+ * The remaining Codex controls move to the dials (see {@link PLUS_DIALS}):
+ * dial 0 = reasoning depth, dial 1 press = push-to-talk (mic), dial 2 press =
+ * submit (codex). Flip top/bottom by swapping the two halves below.
  */
 function plusLayout() {
   return [
@@ -40,12 +42,30 @@ function plusLayout() {
     { kind: "action", keycode: "ACT06", keycap: "FAST" },
     { kind: "action", keycode: "ACT07", keycap: "APPR" },
     { kind: "action", keycode: "ACT08", keycap: "REJ" },
-    { kind: "action", keycode: "ACT12", keycap: "CODEX" },
+    { kind: "action", keycode: "ACT09", keycap: "SPLIT" },
   ];
 }
 
 export const DEFAULT_LAYOUT = fullLayout();
 export const PLUS_LAYOUT = plusLayout();
+
+/**
+ * Dial roles on a Stream Deck + (by encoder index):
+ *   reason — rotate drives reasoning depth (ENC_CW/ENC_CC); press = ENC_CLK
+ *   mic    — press-and-hold = push-to-talk (MIC / ACT10)
+ *   codex  — press = submit  (CODEX / ACT12)
+ */
+export const PLUS_DIALS = Object.freeze({
+  reason: 0,
+  mic: 1,
+  codex: 2,
+});
+
+/** Keycodes for the controls that live on the dials rather than the keys. */
+export const DIAL_KEYCODES = Object.freeze({
+  mic: "ACT10", // push-to-talk (the wide mic key, ACT10/ACT11)
+  codex: "ACT12", // submit
+});
 
 /**
  * Pick a layout for a deck by its key count. Falls back to the full layout,

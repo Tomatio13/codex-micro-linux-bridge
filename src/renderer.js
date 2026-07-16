@@ -101,6 +101,62 @@ export async function renderKey(spec) {
   return buf;
 }
 
+/**
+ * Render an LCD dial-zone label: dark background, a centered Lucide icon, and an
+ * optional caption underneath. Returns a raw RGB buffer, or null if sharp/lucide
+ * aren't available.
+ *
+ * @param {object} spec
+ * @param {number} spec.width
+ * @param {number} spec.height
+ * @param {string|null} spec.lucide
+ * @param {string} [spec.text]
+ * @param {{r,g,b}} [spec.bg]
+ * @param {{r,g,b}} [spec.fg]
+ */
+export async function renderLcdZone(spec) {
+  await ensureDeps();
+  if (!sharp) return null;
+
+  const { width, height, lucide, text = "", bg = { r: 16, g: 16, b: 18 }, fg = { r: 235, g: 235, b: 235 } } = spec;
+  const key = "lcd:" + JSON.stringify(spec);
+  if (cache.has(key)) return cache.get(key);
+
+  const fs = await import("node:fs/promises");
+  const layers = [];
+  const glyph = Math.round(Math.min(width, height) * (text ? 0.42 : 0.6));
+
+  if (lucide && lucideDir) {
+    try {
+      let svg = await fs.readFile(`${lucideDir}/${lucide}.svg`, "utf8");
+      const hex = `#${toHex(fg.r)}${toHex(fg.g)}${toHex(fg.b)}`;
+      svg = svg.replace("<svg", `<svg color="${hex}"`).replace(/stroke="[^"]*"/g, `stroke="${hex}"`);
+      const iconPng = await sharp(Buffer.from(svg)).resize(glyph, glyph).png().toBuffer();
+      layers.push({ input: iconPng, top: Math.round(height * 0.14), left: Math.round((width - glyph) / 2) });
+    } catch {
+      /* icon missing */
+    }
+  }
+
+  if (text) {
+    const fontSize = Math.round(height * 0.2);
+    const label = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+      `<text x="50%" y="${height - fontSize / 2}" text-anchor="middle" font-family="sans-serif" ` +
+      `font-size="${fontSize}" fill="rgb(${fg.r},${fg.g},${fg.b})">${escapeXml(text)}</text></svg>`;
+    layers.push({ input: Buffer.from(label), top: 0, left: 0 });
+  }
+
+  const img = sharp({ create: { width, height, channels: 3, background: bg } });
+  if (layers.length) img.composite(layers);
+  const buf = await img.removeAlpha().raw().toBuffer();
+  cache.set(key, buf);
+  return buf;
+}
+
+function escapeXml(s) {
+  return String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]);
+}
+
 /** Pick black or white for legibility against a background color. */
 function readableOn(bg) {
   const luma = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
