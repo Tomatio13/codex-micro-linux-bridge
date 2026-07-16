@@ -1,0 +1,36 @@
+{
+  "name": "codex-micro-emulator",
+  "version": "0.1.0",
+  "description": "Present an Elgato Stream Deck to the ChatGPT app as a virtual Codex Micro keyboard.",
+  "type": "module",
+  "bin": {
+    "codex-micro-emulator": "bin/codex-micro-emulator.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node bin/codex-micro-emulator.js",
+    "build:native": "bash native/CodexMicroVirtualHID/build.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@elgato-stream-deck/node": "^7.1.0",
+    "sharp": "^0.33.0",
+    "lucide-static": "^0.460.0"
+  },
+  "keywords": [
+    "codex",
+    "codex-micro",
+    "stream-deck",
+    "elgato",
+    "hid",
+    "virtual-hid",
+    "work-louder",
+    "chatgpt"
+  ],
+  "license": "MIT"
+}
