@@ -53,11 +53,14 @@ export const Keys = Object.freeze({
   ENCODER_CLICK: "ENC_CLK",
 });
 
-// HID action types (act field).
+// HID action types (act field). Value 2 doubles as the encoder rotation-tick
+// action: the app only advances reasoning depth on ENC_CW/ENC_CC when act === 2
+// (mapping them to ArrowUp/ArrowDown); it ignores those keys with act 0/1.
 export const Act = Object.freeze({
   RELEASE: 0,
   PRESS: 1,
   HOLD: 2,
+  ROTATE: 2,
 });
 
 /**

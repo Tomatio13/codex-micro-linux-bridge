@@ -129,10 +129,13 @@ export class StreamDeckBackend {
 
   _onRotate(control, amount) {
     if (control.index !== PLUS_DIALS.reason) return;
-    const key = amount >= 0 ? Keys.ENCODER_CW : Keys.ENCODER_CCW;
+    // Turning right (clockwise, amount >= 0) raises reasoning depth; left lowers
+    // it. The app maps ENC_CC -> ArrowUp and ENC_CW -> ArrowDown in its effort
+    // list, so right sends ENC_CC. Each tick is a single event with act === 2
+    // (not a press/release pair) — the only form the app treats as rotation.
+    const key = amount >= 0 ? Keys.ENCODER_CCW : Keys.ENCODER_CW;
     for (let i = 0; i < Math.max(1, Math.abs(amount)); i++) {
-      this.emulator.sendKey(key, Act.PRESS);
-      this.emulator.sendKey(key, Act.RELEASE);
+      this.emulator.sendKey(key, Act.ROTATE);
     }
   }
 
