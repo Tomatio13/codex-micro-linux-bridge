@@ -53,16 +53,7 @@ and drive it from the terminal.
 
 ## Using your Stream Deck +
 
-```
-┌─────────┬─────────┬─────────┬─────────┐
-│ agent 1 │ agent 2 │ agent 3 │ agent 4 │   top row  → your Codex tasks (status colors)
-├─────────┼─────────┼─────────┼─────────┤
-│  Fast   │ Approve │ Reject  │  Split  │   bottom row → action keys
-└─────────┴─────────┴─────────┴─────────┘
-    dial 1        dial 2       dial 3
-  reasoning     push-to-talk   submit
-   (rotate)       (press)      (press)
-```
+![A Stream Deck + running the emulator: the top row shows four agent keys (one green, three idle white with a purple dot), the bottom row shows the Fast, Approve, Reject and Split action icons, and the LCD strip is labelled Think / Talk / Submit above the dials.](assets/codex-micro-stream-deck.jpg)
 
 - **Top row — agent keys:** each follows one of your Codex tasks. Press one to
   jump to that task; the color shows its state (see below). They start as blank
