@@ -13,7 +13,11 @@ import { renderKey, renderLcdZone, canRenderIcons } from "./renderer.js";
 
 // Neutral "light key" background for action keys (white keycaps, dark glyphs).
 const ACTION_BG = { r: 236, g: 234, b: 230 };
-const OFF_BG = { r: 0, g: 0, b: 0 };
+// An agent key with no active task: a cream keycap, like the unlit hardware —
+// not black, which reads as "broken".
+const AGENT_OFF_BG = { r: 246, g: 245, b: 241 };
+// The periwinkle center dot every agent keycap carries on the real device.
+const AGENT_DOT = { r: 112, g: 103, b: 194 };
 
 // LCD dial labels (Stream Deck +). Index = encoder index.
 const DIAL_LABELS = {
@@ -141,11 +145,11 @@ export class StreamDeckBackend {
 
   // --- output --------------------------------------------------------------
 
-  /** Paint the static action-key icons once. */
+  /** Paint the static action-key icons once; agent keys start as cream keycaps. */
   async _paintStatic() {
     for (let i = 0; i < this.layout.length; i++) {
       if (this.layout[i]?.kind === "action") await this._drawAction(i);
-      else if (this.layout[i]?.kind === "agent") await this._fillKey(i, OFF_BG, { dot: null });
+      else if (this.layout[i]?.kind === "agent") await this._fillKey(i, AGENT_OFF_BG, { dot: AGENT_DOT });
     }
   }
 
@@ -154,8 +158,8 @@ export class StreamDeckBackend {
     for (let i = 0; i < this.layout.length; i++) {
       const entry = this.layout[i];
       if (entry?.kind !== "agent") continue;
-      const bg = colorFor(model.slots[entry.slot], model);
-      await this._fillKey(i, bg, { dot: dotColor(bg) });
+      const bg = agentBg(model.slots[entry.slot]);
+      await this._fillKey(i, bg, { dot: AGENT_DOT });
     }
   }
 
@@ -228,13 +232,10 @@ export class StreamDeckBackend {
   }
 }
 
-function colorFor(thread, model) {
+// An agent slot's key color: its live state color when a task is active
+// (idle=white, thinking=blue, complete=green, needs-input=amber, error=pink),
+// otherwise a cream "unlit keycap".
+function agentBg(thread) {
   if (thread && thread.b !== 0 && thread.e !== Effect.off) return unpackRgb(thread.c ?? 0);
-  if (model.ambient && model.ambient.effect !== Effect.off) return unpackRgb(model.ambient.color ?? 0);
-  return OFF_BG;
-}
-
-function dotColor(bg) {
-  const luma = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
-  return luma > 30 ? { r: 60, g: 60, b: 80 } : null;
+  return AGENT_OFF_BG;
 }

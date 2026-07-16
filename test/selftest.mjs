@@ -22,17 +22,19 @@ class FakeHost {
     this.lines = [];
     this.waiters = [];
     transport.on("report", (buf) => {
-      for (const { channel, line } of this.reasm.push(buf)) {
+      for (const { channel, message } of this.reasm.push(buf)) {
         if (channel !== Channel.RPC) continue;
-        this.lines.push(line);
+        this.lines.push(message);
         const w = this.waiters.shift();
-        if (w) w(JSON.parse(line));
+        if (w) w(JSON.parse(message));
       }
     });
   }
 
+  // The real app sends bare JSON with NO trailing newline — match that so the
+  // suite exercises the actual framing the firmware parses.
   send(obj) {
-    for (const report of encode(JSON.stringify(obj) + "\n", Channel.RPC)) {
+    for (const report of encode(JSON.stringify(obj), Channel.RPC)) {
       this.transport.write(report);
     }
   }

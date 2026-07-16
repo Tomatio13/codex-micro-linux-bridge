@@ -64,13 +64,14 @@ test("shim: fake device is discoverable and round-trips device.status", async ()
   const reasm = new Reassembler();
   const responsePromise = new Promise((resolve) => {
     dev.on("data", (buf) => {
-      for (const { channel, line } of reasm.push(buf)) {
-        if (channel === Channel.RPC) resolve(JSON.parse(line));
+      for (const { channel, message } of reasm.push(buf)) {
+        if (channel === Channel.RPC) resolve(JSON.parse(message));
       }
     });
   });
 
-  for (const report of encode(JSON.stringify({ method: Method.DEVICE_STATUS, id: 77 }) + "\n", Channel.RPC)) {
+  // Send bare JSON with no trailing newline, exactly as the app does.
+  for (const report of encode(JSON.stringify({ method: Method.DEVICE_STATUS, id: 77 }), Channel.RPC)) {
     await dev.write(report);
   }
 

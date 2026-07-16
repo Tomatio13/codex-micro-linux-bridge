@@ -37,7 +37,7 @@ Stream Deck:
 - Node.js ≥ 18
 - An Elgato Stream Deck (any model; **Stream Deck +** is the best fit — it has
   the dial the Codex Micro's "think depth" encoder maps to)
-- The ChatGPT desktop app with the Codex Micro integration enabled
+- The ChatGPT desktop app with the latest update
 
 ## Two ways to make the app see the device
 
@@ -78,7 +78,7 @@ and doesn't touch the app's signature. Diagnostics go to `shim.log`
 > app's fuses permit `NODE_OPTIONS`, and it may break on app updates. It's for
 > personal/interoperability use on your own machine.
 
-### Helper mode (once you have the entitlement)
+### Helper mode
 
 ```bash
 npm run build:native              # compiles the Swift IOKit helper

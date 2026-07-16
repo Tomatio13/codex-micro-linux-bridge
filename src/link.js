@@ -27,9 +27,9 @@ export class Link {
   }
 
   _onReport(buf) {
-    for (const { channel, line } of this.reassembler.push(buf)) {
+    for (const { channel, message } of this.reassembler.push(buf)) {
       if (channel === Channel.RPC) {
-        this.emulator.handleLine(line);
+        this.emulator.handleLine(message);
       }
       // Debug-channel lines from the host are not part of the RPC flow.
     }

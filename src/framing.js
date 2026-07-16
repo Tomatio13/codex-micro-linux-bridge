@@ -47,8 +47,15 @@ export function encode(message, channel = Channel.RPC) {
 }
 
 /**
- * Reassembles inbound reports into complete newline-terminated lines,
- * demultiplexed by channel. Feed it raw report buffers; it emits lines.
+ * Reassembles inbound reports into complete messages, demultiplexed by channel.
+ *
+ * The two directions are framed differently, mirroring the real firmware:
+ *   - RPC channel (host → device): the app sends bare JSON with NO terminator
+ *     (`WLRPCClient.sendRpcCall` writes the escaped JSON directly). So we detect
+ *     complete objects by scanning for balanced braces — not by newline. Getting
+ *     this wrong means every request silently never completes and the app's RPC
+ *     queue times out.
+ *   - Debug channel: newline-delimited log lines.
  */
 export class Reassembler {
   constructor() {
@@ -60,7 +67,7 @@ export class Reassembler {
    * Push one raw HID report (with or without the leading report-ID byte —
    * some kernels strip it on read, so we detect and normalise).
    * @param {Buffer} report
-   * @returns {{channel: number, line: string}[]} completed lines
+   * @returns {{channel: number, message: string}[]} completed messages
    */
   push(report) {
     const view = normaliseReport(report);
@@ -71,18 +78,68 @@ export class Reassembler {
     if (this.buffers[channel] === undefined) this.buffers[channel] = "";
     this.buffers[channel] += payload;
 
+    if (channel === Channel.RPC) {
+      const { objects, rest } = extractJsonObjects(this.buffers[channel]);
+      this.buffers[channel] = rest;
+      return objects.map((message) => ({ channel, message }));
+    }
+
+    // Debug channel: newline-delimited.
     const out = [];
-    const endsInNewline = /[\r\n]$/.test(payload);
     const parts = this.buffers[channel].split(/\r?\n/);
-    if (parts.length > 1 || endsInNewline) {
-      for (let i = 0; i < parts.length - 1; i++) {
-        const line = parts[i].trim();
-        if (line) out.push({ channel, line });
-      }
-      this.buffers[channel] = parts[parts.length - 1];
+    this.buffers[channel] = parts.pop() ?? "";
+    for (const p of parts) {
+      const t = p.trim();
+      if (t) out.push({ channel, message: t });
     }
     return out;
   }
+}
+
+/**
+ * Extract every complete top-level JSON object from `buf`, returning them plus
+ * any trailing incomplete remainder. Scans for balanced `{`/`}` while respecting
+ * string literals and escapes, so it works with no delimiter, with newlines, or
+ * with several objects back-to-back.
+ * @param {string} buf
+ * @returns {{objects: string[], rest: string}}
+ */
+export function extractJsonObjects(buf) {
+  const objects = [];
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let start = -1;
+  let lastEnd = 0;
+
+  for (let i = 0; i < buf.length; i++) {
+    const ch = buf[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === "}") {
+      if (depth > 0) {
+        depth--;
+        if (depth === 0 && start >= 0) {
+          objects.push(buf.slice(start, i + 1));
+          lastEnd = i + 1;
+          start = -1;
+        }
+      }
+    }
+  }
+
+  // Keep the tail from an in-progress object (depth > 0), else drop consumed
+  // bytes and any inter-object filler (whitespace/newlines).
+  const rest = depth > 0 && start >= 0 ? buf.slice(start) : buf.slice(lastEnd);
+  return { objects, rest };
 }
 
 /**
