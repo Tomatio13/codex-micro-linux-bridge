@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="460" viewBox="0 0 1200 460" role="img" aria-labelledby="archTitle archDesc">
+  <title id="archTitle">仕組み — ChatGPT と実機 Codex Micro の間をつなぐブリッジ</title>
+  <desc id="archDesc">4つのブロックでデータ経路を示す。インストール済みファイルを変更していないChatGPT Desktopが、実行時shimまたはuhid helperの仮想デバイスを開く。ブリッジは固定64バイトレポートを実機Codex Microへ中継するか、テスト入力向けのプロトコルエミュレータを実行する。下方向の矢印はキーイベントとエージェントごとの発色をアプリへ返す経路。</desc>
+
+  <defs>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, "Noto Sans Mono CJK JP", monospace; }
+    </style>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="7" refY="3.2" orient="auto"><path d="M0 0 L8 3.2 L0 6.4 Z" fill="#8A8F98"/></marker>
+    <marker id="ahg" markerWidth="10" markerHeight="10" refX="7" refY="3.2" orient="auto"><path d="M0 0 L8 3.2 L0 6.4 Z" fill="#19E57A"/></marker>
+  </defs>
+
+  <rect width="1200" height="460" rx="26" fill="#0B0C0E"/>
+
+  <text class="mono" x="56" y="56" font-size="18" letter-spacing="2" fill="#8A8F98">HOW IT WORKS  ·  仕組み</text>
+
+  <!-- forward arrows -->
+  <g stroke="#8A8F98" stroke-width="2" fill="none">
+    <line x1="308" y1="205" x2="331" y2="205" marker-end="url(#ah)"/>
+    <line x1="587" y1="205" x2="610" y2="205" marker-end="url(#ah)"/>
+    <line x1="866" y1="205" x2="889" y2="205" marker-end="url(#ah)"/>
+  </g>
+  <!-- return path: key events + lighting -->
+  <path d="M1018 300 V332 H181 V302" fill="none" stroke="#19E57A" stroke-width="2" opacity="0.8" marker-end="url(#ahg)"/>
+  <text class="mono" x="600" y="352" font-size="15" fill="#7CFFC0" text-anchor="middle">key events  ⇄  per-agent lighting  (v.oai.hid / v.oai.thstatus)</text>
+
+  <!-- ===== node 1: ChatGPT app ===== -->
+  <g id="n1">
+    <rect x="56" y="110" width="250" height="190" rx="18" fill="#15171B" stroke="#2A2E35" stroke-width="2"/>
+    <g transform="translate(76 130)" fill="none" stroke="#C7CBD2" stroke-width="2"><rect x="0" y="0" width="26" height="20" rx="3"/><line x1="0" y1="6" x2="26" y2="6"/></g>
+    <text class="mono" x="112" y="146" font-size="13" letter-spacing="1" fill="#8A8F98">APP FILES UNCHANGED</text>
+    <text class="sans" x="76" y="186" font-size="24" font-weight="700" fill="#F4F1EA">ChatGPT</text>
+    <text class="sans" x="76" y="214" font-size="24" font-weight="700" fill="#F4F1EA">デスクトップ</text>
+    <text class="sans" x="76" y="244" font-size="17" fill="#9AA0A6">Codex UI が</text>
+    <text class="sans" x="76" y="266" font-size="17" fill="#9AA0A6">HID デバイスを探索</text>
+    <rect x="76" y="276" width="132" height="20" rx="10" fill="#14171C" stroke="#2A2E35"/>
+    <text class="mono" x="142" y="290" font-size="12" fill="#8A8F98" text-anchor="middle">ディスク上は無変更</text>
+  </g>
+
+  <!-- ===== node 2: virtual device layer ===== -->
+  <g id="n2">
+    <rect x="335" y="110" width="250" height="190" rx="18" fill="#15171B" stroke="#2A2E35" stroke-width="2"/>
+    <g transform="translate(355 132)" fill="none" stroke="#C7CBD2" stroke-width="2" stroke-linecap="round"><path d="M2 6 H16 M12 2 L16 6 L12 10 M24 16 H10 M14 12 L10 16 L14 20"/></g>
+    <text class="mono" x="391" y="146" font-size="13" letter-spacing="1" fill="#8A8F98">shim / uhid helper</text>
+    <text class="sans" x="355" y="186" font-size="24" font-weight="700" fill="#F4F1EA">仮想デバイス</text>
+    <text class="sans" x="355" y="216" font-size="17" fill="#9AA0A6">実行時 node-hid フック、</text>
+    <text class="sans" x="355" y="238" font-size="17" fill="#9AA0A6">または uhid で実体生成</text>
+    <rect x="355" y="272" width="104" height="20" rx="10" fill="#122417" stroke="#19E57A"/>
+    <text class="mono" x="407" y="286" font-size="12" fill="#7CFFC0" text-anchor="middle">Shim 検証済み</text>
+  </g>
+
+  <!-- ===== node 3: bridge core ===== -->
+  <g id="n3">
+    <rect x="614" y="110" width="250" height="190" rx="18" fill="#15171B" stroke="#2A2E35" stroke-width="2"/>
+    <text class="mono" x="634" y="150" font-size="22" fill="#C7CBD2">{ }</text>
+    <text class="mono" x="672" y="146" font-size="13" letter-spacing="1" fill="#8A8F98">src/ · pure JS</text>
+    <text class="sans" x="634" y="186" font-size="24" font-weight="700" fill="#F4F1EA">ブリッジコア</text>
+    <text class="sans" x="634" y="216" font-size="17" fill="#9AA0A6">64B raw レポート中継 +</text>
+    <text class="sans" x="634" y="238" font-size="17" fill="#9AA0A6">プロトコルエミュレータ</text>
+    <rect x="634" y="272" width="92" height="20" rx="10" fill="#122417" stroke="#19E57A"/>
+    <text class="mono" x="680" y="286" font-size="12" fill="#7CFFC0" text-anchor="middle">テスト済み</text>
+  </g>
+
+  <!-- ===== node 4: input backend ===== -->
+  <g id="n4">
+    <rect x="893" y="110" width="250" height="190" rx="18" fill="#15171B" stroke="#2A2E35" stroke-width="2"/>
+    <g transform="translate(913 130)" fill="none" stroke="#C7CBD2" stroke-width="1.8">
+      <rect x="0" y="0" width="26" height="22" rx="5"/>
+      <circle cx="8" cy="7" r="2.4" fill="#19E57A" stroke="none"/>
+      <circle cx="18" cy="7" r="2.2" stroke="#8A8F98"/>
+      <circle cx="8" cy="15" r="2.2" stroke="#8A8F98"/>
+      <circle cx="18" cy="15" r="2.2" stroke="#8A8F98"/>
+    </g>
+    <text class="mono" x="949" y="146" font-size="13" letter-spacing="1" fill="#8A8F98">backend</text>
+    <text class="sans" x="913" y="186" font-size="24" font-weight="700" fill="#F4F1EA">入力バックエンド</text>
+    <text class="sans" x="913" y="216" font-size="17" fill="#9AA0A6">実機 Codex Micro</text>
+    <text class="sans" x="913" y="238" font-size="17" fill="#9AA0A6">(USB-C / Bluetooth)</text>
+    <rect x="913" y="250" width="142" height="20" rx="10" fill="#122417" stroke="#19E57A"/>
+    <text class="mono" x="984" y="264" font-size="12" fill="#7CFFC0" text-anchor="middle">Bluetooth 検証済み</text>
+    <text class="mono" x="913" y="290" font-size="12" fill="#8A8F98">※ USB 未検証 · keyboard 自検</text>
+  </g>
+</svg>

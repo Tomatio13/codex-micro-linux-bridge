@@ -3,5 +3,11 @@ node_modules/
 native/CodexMicroVirtualHID/CodexMicroVirtualHID
 native/CodexMicroVirtualHID/*.o
 native/CodexMicroVirtualHID/*.dSYM/
+native/CodexMicroVirtualHIDLinux/CodexMicroVirtualHIDLinux
+native/CodexMicroVirtualHIDLinux/*.o
 *.log
 .DS_Store
+# Generated local knowledge graph
+graphify-out/
+# Local historical design notes containing unimplemented proposals
+UBUNTU_COMPATIBILITY.md

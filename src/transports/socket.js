@@ -3,9 +3,9 @@ import net from "node:net";
 import { REPORT_SIZE } from "../framing.js";
 
 /**
- * Transport that exchanges fixed-size 64-byte HID reports with the native macOS
- * helper (`native/CodexMicroVirtualHID`) over a Unix domain socket. The helper
- * owns the actual IOKit virtual device; this side owns all the protocol logic.
+ * Transport that exchanges fixed-size 64-byte HID reports with the native
+ * macOS or Linux helper over a Unix domain socket. The helper owns the virtual
+ * HID device; this side owns all the protocol logic.
  *
  * Wire format: raw, back-to-back {@link REPORT_SIZE}-byte frames in both
  * directions. Each frame is `[reportID, channel, length, ...payload]`.

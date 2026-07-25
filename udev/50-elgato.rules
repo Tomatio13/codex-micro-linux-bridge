@@ -1,0 +1,3 @@
+# Elgato Stream Deck devices. Restrict raw USB/HID access to plugdev members.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0fd9", MODE="0660", GROUP="plugdev", TAG+="uaccess"

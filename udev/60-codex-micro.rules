@@ -1,0 +1,4 @@
+# Physical Codex Micro vendor HID interface (VID 303A, PID 8360).
+# 0003 = USB HID, 0005 = Bluetooth HID. Keep access scoped to plugdev/uaccess.
+SUBSYSTEM=="hidraw", KERNELS=="0003:303A:8360.*", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="hidraw", KERNELS=="0005:303A:8360.*", MODE="0660", GROUP="plugdev", TAG+="uaccess"

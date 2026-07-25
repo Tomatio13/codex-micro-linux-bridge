@@ -172,7 +172,9 @@ function patchModule(real, opts = {}) {
     } catch {
       /* ignore */
     }
-    return list.concat([{ ...FAKE_DESCRIPTOR }]);
+    const devices = list.concat([{ ...FAKE_DESCRIPTOR }]);
+    log(`devices() returned ${devices.length} device(s), including virtual Codex Micro`);
+    return devices;
   };
 
   if (typeof real.devicesAsync === "function") {
@@ -183,7 +185,9 @@ function patchModule(real, opts = {}) {
       } catch {
         /* ignore */
       }
-      return list.concat([{ ...FAKE_DESCRIPTOR }]);
+      const devices = list.concat([{ ...FAKE_DESCRIPTOR }]);
+      log(`devicesAsync() returned ${devices.length} device(s), including virtual Codex Micro`);
+      return devices;
     };
   }
 
@@ -192,10 +196,13 @@ function patchModule(real, opts = {}) {
     patched.HIDAsync = new Proxy(RealAsync, {
       get(target, prop, receiver) {
         if (prop === "open") {
-          return (openPath, openOpts) =>
-            isFakePath(openPath)
-              ? Promise.resolve(new FakeHIDAsync(socketPath))
-              : RealAsync.open(openPath, openOpts);
+          return (openPath, openOpts) => {
+            if (isFakePath(openPath)) {
+              log(`opening virtual Codex Micro at ${openPath}`);
+              return Promise.resolve(new FakeHIDAsync(socketPath));
+            }
+            return RealAsync.open(openPath, openOpts);
+          };
         }
         return Reflect.get(target, prop, receiver);
       },
@@ -206,14 +213,44 @@ function patchModule(real, opts = {}) {
   return patched;
 }
 
+/** Build a node-hid replacement for platforms without a loadable native addon. */
+function createVirtualOnlyModule(opts = {}) {
+  const socketPath = opts.socketPath || defaultSocketPath();
+  const unavailable = new Error(
+    "The bundled native node-hid addon is unavailable; only the virtual Codex Micro can be opened.",
+  );
+  const stub = {
+    devices: () => [],
+    devicesAsync: async () => [],
+    HIDAsync: {
+      open: async (openPath) => {
+        if (isFakePath(openPath)) return new FakeHIDAsync(socketPath);
+        throw unavailable;
+      },
+    },
+  };
+  return patchModule(stub, { socketPath });
+}
+
 /** Intercept `require('node-hid')` (all copies) and return the patched module. */
 function installHook(opts = {}) {
   const Module = require("node:module");
   const original = Module._load;
   const patchedCache = new WeakMap();
+  const virtualOnly = createVirtualOnlyModule(opts);
 
   Module._load = function (request, parent, isMain) {
-    const mod = original.apply(this, arguments);
+    let mod;
+    if (isNodeHidRequest(request)) {
+      try {
+        mod = original.apply(this, arguments);
+      } catch (err) {
+        log(`native node-hid load failed; using virtual-only shim: ${err.message}`);
+        return virtualOnly;
+      }
+    } else {
+      mod = original.apply(this, arguments);
+    }
     if (looksLikeNodeHid(request, mod)) {
       if (!patchedCache.has(mod)) patchedCache.set(mod, patchModule(mod, opts));
       return patchedCache.get(mod);
@@ -223,8 +260,12 @@ function installHook(opts = {}) {
   log(`hook installed (socket=${opts.socketPath || defaultSocketPath()})`);
 }
 
+function isNodeHidRequest(request) {
+  return typeof request === "string" && /(^|[\\/])node-hid($|[\\/.])/.test(request);
+}
+
 function looksLikeNodeHid(request, mod) {
-  if (typeof request === "string" && /(^|[\\/])node-hid($|[\\/.])/.test(request)) return true;
+  if (isNodeHidRequest(request)) return true;
   // Shape check as a fallback (bare module already resolved to an object).
   return Boolean(mod && typeof mod.devices === "function" && mod.HIDAsync);
 }
@@ -235,6 +276,7 @@ module.exports = {
   FAKE_DESCRIPTOR,
   FakeHIDAsync,
   patchModule,
+  createVirtualOnlyModule,
   installHook,
   defaultSocketPath,
 };

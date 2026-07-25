@@ -84,6 +84,17 @@ test("shim: fake device is discoverable and round-trips device.status", async ()
   server.close();
 });
 
+test("shim: virtual-only fallback works without a native node-hid addon", async () => {
+  const patched = shim.createVirtualOnlyModule({ socketPath: tmpSocket() });
+  const found = await patched.devicesAsync();
+  assert.equal(found.length, 1);
+  assert.equal(found[0].path, shim.FAKE_PATH);
+  await assert.rejects(
+    patched.HIDAsync.open("real-device"),
+    /only the virtual Codex Micro can be opened/,
+  );
+});
+
 // Wait until the fake device's socket has actually connected to the bridge.
 function once(dev, _label, device, _socketPath) {
   return new Promise((resolve) => {

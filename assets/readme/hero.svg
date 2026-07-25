@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="heroTitle heroDesc">
+  <title id="heroTitle">Codex Micro Linux Bridge</title>
+  <desc id="heroDesc">A bridge that runs a real Codex Micro with the ChatGPT desktop on Ubuntu. Right side: a faithful top-down specimen of the device (dial, 2-axis joystick, status-lit agent keys, command keys, push-to-talk, touch sensor). Bottom: the 64-byte HID report frame.</desc>
+
+  <defs>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, "Noto Sans Mono CJK JP", monospace; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="420" rx="26" fill="#0B0C0E"/>
+
+  <!-- LEFT: identity + value -->
+  <g id="title-block">
+    <text class="mono" x="56" y="74" font-size="18" letter-spacing="2" fill="#8A8F98">VIRTUAL HID BRIDGE  ·  UBUNTU / LINUX</text>
+
+    <text class="sans" x="54" y="142" font-size="60" font-weight="700" fill="#F4F1EA">Codex Micro</text>
+    <text class="sans" x="54" y="208" font-size="60" font-weight="700" fill="#F4F1EA">Linux Bridge</text>
+
+    <text class="sans" x="56" y="262" font-size="24" fill="#C7CBD2">Run a real Codex Micro with</text>
+    <text class="sans" x="56" y="296" font-size="24" fill="#C7CBD2">ChatGPT desktop on Ubuntu.</text>
+
+    <g id="chips" class="mono" font-size="16" fill="#C7CBD2">
+      <rect x="56"  y="322" width="62"  height="30" rx="9" fill="#14171C" stroke="#2A2E35"/>
+      <text x="87"  y="342" text-anchor="middle">shim</text>
+      <rect x="128" y="322" width="118" height="30" rx="9" fill="#14171C" stroke="#2A2E35"/>
+      <text x="187" y="342" text-anchor="middle">uhid helper</text>
+      <rect x="256" y="322" width="118" height="30" rx="9" fill="#14171C" stroke="#2A2E35"/>
+      <text x="315" y="342" text-anchor="middle">64-byte HID</text>
+    </g>
+  </g>
+
+  <!-- RIGHT: real Codex Micro specimen -->
+  <g id="device-specimen">
+    <!-- RGB perimeter glow (faked, no blur filter) -->
+    <rect x="764" y="22" width="376" height="376" rx="54" fill="none" stroke="#19E57A" stroke-width="12" opacity="0.18"/>
+    <rect x="770" y="28" width="364" height="364" rx="50" fill="none" stroke="#19E57A" stroke-width="5"  opacity="0.45"/>
+
+    <!-- white body + metal face -->
+    <rect x="772" y="30" width="360" height="360" rx="46" fill="#F4F5F6"/>
+    <rect x="792" y="50" width="320" height="320" rx="30" fill="#D7D9DD" stroke="#C2C5CA" stroke-width="1.5"/>
+
+    <!-- corner screws -->
+    <g fill="#2A2D31"><circle cx="806" cy="64" r="6"/><circle cx="1098" cy="64" r="6"/><circle cx="806" cy="356" r="6"/><circle cx="1098" cy="356" r="6"/></g>
+    <!-- top arrow glyph -->
+    <g stroke="#5B5F66" stroke-width="2" stroke-linecap="round" fill="none"><path d="M952 80 V64 M946 70 L952 64 L958 70"/></g>
+
+    <!-- engraved brand line (factual collaboration mark) -->
+    <text class="mono" transform="rotate(-90 802 210)" x="802" y="210" font-size="11" letter-spacing="1.5" fill="#9AA0A6" text-anchor="middle">WORK LOUDER · OPENAI 2026</text>
+
+    <!-- dial (top-left) -->
+    <g id="dial">
+      <circle cx="844" cy="112" r="25" fill="#FBFBFC" stroke="#C7CACF" stroke-width="1.5"/>
+      <line x1="829" y1="97" x2="859" y2="127" stroke="#D2D5DA" stroke-width="4" stroke-linecap="round"/>
+    </g>
+
+    <!-- 2-axis joystick (top-right) -->
+    <g id="joystick">
+      <rect x="1023" y="87" width="50" height="50" rx="9" fill="#1C1F23" stroke="#6B6F76" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <circle cx="1048" cy="112" r="16" fill="#0C0D0F"/>
+      <g stroke="#3A3F47" stroke-width="2" stroke-linecap="round"><path d="M1048 102 v6 M1048 116 v6 M1038 112 h6 M1052 112 h6"/></g>
+    </g>
+
+    <!-- agent keys (frosted, status-lit) -->
+    <g id="agent-keys">
+      <!-- dim keys -->
+      <g fill="#FFFFFF" fill-opacity="0.16" stroke="#FFFFFF" stroke-opacity="0.32" stroke-width="1.5">
+        <rect x="954"  y="86"  width="52" height="52" rx="13"/>
+        <rect x="818"  y="154" width="52" height="52" rx="13"/>
+        <rect x="886"  y="154" width="52" height="52" rx="13"/>
+        <rect x="954"  y="154" width="52" height="52" rx="13"/>
+        <rect x="1022" y="154" width="52" height="52" rx="13"/>
+      </g>
+      <g stroke="#6E73C8" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round">
+        <g transform="translate(966,98)"><path d="M14 7 V21 M7 14 H21"/></g>
+        <g transform="translate(830,166)"><path d="M14 7 V21 M7 14 H21"/></g>
+        <g transform="translate(898,166)"><path d="M14 7 V21 M7 14 H21"/></g>
+        <g transform="translate(966,166)"><path d="M14 7 V21 M7 14 H21"/></g>
+        <g transform="translate(1034,166)"><path d="M14 7 V21 M7 14 H21"/></g>
+      </g>
+      <!-- active key (glows green) -->
+      <rect x="884" y="84" width="56" height="56" rx="15" fill="#19E57A" opacity="0.85"/>
+      <rect x="886" y="86" width="52" height="52" rx="13" fill="#FFFFFF" fill-opacity="0.55"/>
+      <g transform="translate(898,98)" stroke="#0E7A45" stroke-width="3" stroke-linecap="round"><path d="M14 7 V21 M7 14 H21"/></g>
+    </g>
+
+    <!-- command keys (white, line icons) -->
+    <g id="command-keys">
+      <g fill="#FFFFFF">
+        <rect x="818"  y="222" width="52" height="52" rx="14"/>
+        <rect x="886"  y="222" width="52" height="52" rx="14"/>
+        <rect x="954"  y="222" width="52" height="52" rx="14"/>
+        <rect x="1022" y="222" width="52" height="52" rx="14"/>
+      </g>
+      <g transform="translate(830,234)" fill="#16181C"><path d="M16 2 L6 16 H13 L11 26 L22 11 H15 Z"/></g>
+      <g transform="translate(898,234)" fill="none" stroke="#16181C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="14" r="11"/><path d="M9 14 l3.5 4 l8 -8"/></g>
+      <g transform="translate(966,234)" fill="none" stroke="#16181C" stroke-width="2.2" stroke-linecap="round"><circle cx="14" cy="14" r="11"/><path d="M9.5 9.5 L18.5 18.5 M18.5 9.5 L9.5 18.5"/></g>
+      <g transform="translate(1034,234)" fill="none" stroke="#16181C" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="7" r="3"/><circle cx="9" cy="21" r="3"/><circle cx="20" cy="8" r="3"/><path d="M9 10 V18 M20 11 C20 16 15 15 9 16"/></g>
+    </g>
+
+    <!-- bottom row: touch sensor + push-to-talk + think -->
+    <g id="bottom-row">
+      <g id="touch-sensor">
+        <rect x="812" y="304" width="7" height="4" rx="1" fill="#F4F1EA"/>
+        <rect x="812" y="314" width="7" height="4" rx="1" fill="#19E57A"/>
+        <rect x="812" y="324" width="7" height="4" rx="1" fill="#F4F1EA"/>
+        <circle cx="844" cy="316" r="15" fill="#0C0D0F"/>
+      </g>
+      <rect x="886" y="294" width="120" height="44" rx="14" fill="#FFFFFF"/>
+      <g transform="translate(932,302)" fill="none" stroke="#16181C" stroke-width="2" stroke-linecap="round"><rect x="11" y="4" width="6" height="11" rx="3"/><path d="M7 13 a7 7 0 0 0 14 0 M14 20 v3"/></g>
+      <rect x="1022" y="290" width="52" height="52" rx="14" fill="#FFFFFF"/>
+      <g transform="translate(1034,302)" fill="none" stroke="#16181C" stroke-width="2" stroke-linejoin="round"><path d="M14 6 c-3 0 -4 2 -4 4 c-2 0 -3 2 -2 4 c-1 2 1 3 3 3 c0 1 1 2 3 2 c2 0 3 -1 3 -2 c2 0 4 -1 3 -3 c1 -2 0 -4 -2 -4 c0 -2 -1 -4 -4 -4 z"/></g>
+    </g>
+  </g>
+
+  <!-- BOTTOM MOTIF: 64-byte HID report frame -->
+  <g id="hid-frame">
+    <g class="mono" font-size="15" fill="#8A8F98">
+      <text x="58"  y="386">report id</text>
+      <text x="150" y="386">channel</text>
+      <text x="244" y="386">length</text>
+      <text x="322" y="386">payload · UTF-8 · may span reports</text>
+    </g>
+    <rect x="56"  y="392" width="80"  height="14" rx="3" fill="#122417" stroke="#19E57A" stroke-width="1.5"/>
+    <rect x="140" y="392" width="80"  height="14" rx="3" fill="#14171C" stroke="#2A2E35"/>
+    <rect x="224" y="392" width="80"  height="14" rx="3" fill="#14171C" stroke="#2A2E35"/>
+    <rect x="308" y="392" width="412" height="14" rx="3" fill="#101216" stroke="#2A2E35"/>
+    <text class="mono" x="96" y="403" font-size="11" fill="#19E57A" text-anchor="middle">06</text>
+    <g stroke="#23272E" stroke-width="1">
+      <line x1="334" y1="394" x2="334" y2="404"/><line x1="360" y1="394" x2="360" y2="404"/>
+      <line x1="386" y1="394" x2="386" y2="404"/><line x1="412" y1="394" x2="412" y2="404"/>
+      <line x1="438" y1="394" x2="438" y2="404"/><line x1="464" y1="394" x2="464" y2="404"/>
+      <line x1="490" y1="394" x2="490" y2="404"/><line x1="516" y1="394" x2="516" y2="404"/>
+      <line x1="542" y1="394" x2="542" y2="404"/><line x1="568" y1="394" x2="568" y2="404"/>
+      <line x1="594" y1="394" x2="594" y2="404"/><line x1="620" y1="394" x2="620" y2="404"/>
+      <line x1="646" y1="394" x2="646" y2="404"/><line x1="672" y1="394" x2="672" y2="404"/>
+      <line x1="698" y1="394" x2="698" y2="404"/>
+    </g>
+  </g>
+</svg>

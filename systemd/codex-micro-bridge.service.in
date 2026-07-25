@@ -1,0 +1,22 @@
+[Unit]
+Description=Codex Micro Linux Bridge
+Documentation=file://@PROJECT_ROOT@/README_JP.md
+
+[Service]
+Type=simple
+WorkingDirectory=@PROJECT_ROOT@
+ExecStart="@NODE_BIN@" "@PROJECT_ROOT@/bin/codex-micro-emulator.js" --mode shim --input codex-micro --verbose
+Restart=on-failure
+RestartSec=2s
+# No state needs flushing, and an active Bluetooth hidraw read can block a
+# graceful Node.js shutdown. The next start removes any stale Unix socket.
+KillSignal=SIGKILL
+SuccessExitStatus=SIGKILL
+TimeoutStopSec=1s
+UMask=0077
+NoNewPrivileges=true
+LockPersonality=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=default.target

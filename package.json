@@ -1,7 +1,7 @@
 {
   "name": "codex-micro-emulator",
   "version": "0.1.0",
-  "description": "Present an Elgato Stream Deck to the ChatGPT app as a virtual Codex Micro keyboard.",
+  "description": "Bridge a physical Codex Micro or test input to a ChatGPT desktop runtime on Linux.",
   "type": "module",
   "bin": {
     "codex-micro-emulator": "bin/codex-micro-emulator.js"
@@ -12,7 +12,8 @@
   "scripts": {
     "test": "node --test",
     "start": "node bin/codex-micro-emulator.js",
-    "build:native": "bash native/CodexMicroVirtualHID/build.sh"
+    "build:native": "bash native/build.sh",
+    "build:native:linux": "bash native/CodexMicroVirtualHIDLinux/build.sh"
   },
   "engines": {
     "node": ">=18"
@@ -25,6 +26,8 @@
   "keywords": [
     "codex",
     "codex-micro",
+    "linux",
+    "bluetooth",
     "stream-deck",
     "elgato",
     "hid",
