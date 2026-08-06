@@ -89,21 +89,26 @@ Physical Codex Micro ready at /dev/hidrawN.
 In another terminal, launch the desktop through the Shim:
 
 ```bash
-CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux.sh
+CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux-forced.sh
 ```
+
+> [!IMPORTANT]
+> **The forced launcher is required for builds from August 2026 onward (`26.727.40816`+, the repackaged builds that ship `/opt/chatgpt-desktop/.codex-linux/`).** Those builds default the Codex Micro feature gate to OFF, so the plain `launch-chatgpt-linux.sh` starts the app without the key-settings UI. The forced launcher serves a webview with the gate forced ON from localhost and also sets `CODEX_LINUX_ALLOW_RENDERER_URL_OVERRIDE=1` (the new `start.sh` pins `ELECTRON_RENDERER_URL` by default, so that variable is required for the overlay to be honored).
+
+> Fully quit the desktop **before** launching. The new `start.sh` hands off to an existing instance if it detects one, which would bypass the Shim.
 
 > [!NOTE]
 > Shim mode requires the `EnableNodeOptionsEnvironmentVariable` fuse to be enabled in the Electron build you use.
 
-#### If the Codex Micro settings are hidden
+#### Older builds where the Codex Micro gate is already ON
 
-If the desktop build contains the Codex Micro code but its settings are hidden, fully quit the normally launched desktop and use the optional validation launcher:
+On older builds the plain Shim launch also works:
 
 ```bash
-CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux-forced.sh
+CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux.sh
 ```
 
-The launcher serves a temporary, in-memory-patched copy of the relevant client assets from localhost. It does not modify anything under `/opt` or any other desktop installation path, and the overlay stops when the app exits. This unsupported validation path does not change server-side account entitlement and fails closed when the expected client gate cannot be found.
+The forced launcher serves a temporary, in-memory-patched copy of the relevant client assets from localhost. It does not modify anything under `/opt` or any other desktop installation path, and the overlay stops when the app exits. This unsupported validation path does not change server-side account entitlement and fails closed when the expected client gate cannot be found.
 
 > [!TIP]
 > Bluetooth reconnection can change `/dev/hidrawN`. Waiting and node rediscovery are implemented, covered by automated transport tests, and were observed in the user service on the tested Ubuntu machine. A full key/RGB regression after every reconnect is not automated. Avoid pinning `--device` during normal use because an explicit path disables renumbering discovery.
@@ -123,7 +128,7 @@ systemctl --user status codex-micro-bridge.service
 journalctl --user -u codex-micro-bridge.service -f
 ```
 
-The service supervises the physical bridge only. Launch ChatGPT Desktop through `launch-chatgpt-linux.sh` or `launch-chatgpt-linux-forced.sh` after login so the app loads the Shim. To remove the service:
+The service supervises the physical bridge only. Launch ChatGPT Desktop through `launch-chatgpt-linux-forced.sh` after login so the app loads the Shim (the forced launcher is required on August-2026+ builds). To remove the service:
 
 ```bash
 ./scripts/uninstall-user-service.sh
@@ -143,13 +148,13 @@ node bin/codex-micro-emulator.js --mode shim --input keyboard --verbose
 In another terminal:
 
 ```bash
-CHATGPT_APP=/path/to/chatgpt ./shim/launch-chatgpt-linux.sh
+CHATGPT_APP=/path/to/chatgpt ./shim/launch-chatgpt-linux-forced.sh
 ```
 
 To check launcher configuration without starting the desktop:
 
 ```bash
-CHATGPT_APP=/bin/true ./shim/launch-chatgpt-linux.sh --dry-run
+CHATGPT_APP=/bin/true ./shim/launch-chatgpt-linux-forced.sh --dry-run
 ```
 
 ### Path C — `uhid` helper
@@ -225,8 +230,8 @@ The CLI still accepts a legacy development-input backend used by the inherited e
 - `src/transports/hidraw.js` — discover and open the physical USB/Bluetooth Codex Micro
 - `src/raw-bridge.js` — transparent raw-report forwarding between the app and hardware
 - `src/transports/loopback.js` — in-memory transport for tests
-- `shim/launch-chatgpt-linux.sh` — Linux launch script for the ChatGPT desktop
-- `shim/launch-chatgpt-linux-forced.sh` — temporary client-side feature-gate launcher
+- `shim/launch-chatgpt-linux.sh` — Linux launch script for the ChatGPT desktop (older builds; no gate override)
+- `shim/launch-chatgpt-linux-forced.sh` — standard launcher that forces the Codex Micro feature gate ON (required on August-2026+ builds)
 - `scripts/force-codex-micro-webview.mjs` — read-only patched webview overlay server
 - `systemd/codex-micro-bridge.service.in` — systemd user-service template
 - `scripts/install-user-service.sh` / `uninstall-user-service.sh` — install or remove the login service
@@ -296,12 +301,12 @@ Not automated (validated manually where noted):
 ### The ChatGPT desktop does not detect the device
 
 - Start the bridge first.
-- Launch the ChatGPT desktop via `launch-chatgpt-linux.sh`, not normally.
+- Launch the ChatGPT desktop via `launch-chatgpt-linux-forced.sh`, not normally (required on August-2026+ builds, where the gate is OFF without it).
 - Confirm `CHATGPT_APP` points at the executable.
 - Check the Electron fuse settings.
 - Confirm `CODEX_MICRO_SOCKET` matches in both processes.
 - Check the shim log.
-- If the device connects but the settings remain hidden, try the optional `launch-chatgpt-linux-forced.sh` validation path.
+- On older builds where the device connects but the settings remain hidden, try the `launch-chatgpt-linux-forced.sh` validation path.
 
 ### `/dev/uhid` does not exist
 
