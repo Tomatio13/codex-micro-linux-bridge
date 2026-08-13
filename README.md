@@ -73,10 +73,10 @@ sudo udevadm trigger --subsystem-match=hidraw
 bluetoothctl connect YOUR_CODEX_MICRO_ADDRESS
 ```
 
-Start the bridge first. It auto-detects the current Codex Micro vendor `hidraw` node:
+Start the bridge service first. It auto-detects the current Codex Micro vendor `hidraw` node:
 
 ```bash
-node bin/codex-micro-emulator.js --mode shim --input codex-micro --verbose
+systemctl --user start codex-micro-bridge.service
 ```
 
 Expected startup output includes:
@@ -86,16 +86,22 @@ Listening for the node-hid shim on /tmp/codex-micro-vhid.sock.
 Physical Codex Micro ready at /dev/hidrawN.
 ```
 
-In another terminal, launch the desktop through the Shim:
+Once the service reports `active (running)`, launch the desktop through the Shim:
 
 ```bash
-CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux-forced.sh
+./start.sh
+```
+
+`start.sh` only launches ChatGPT; it does not start or stop the bridge. For a custom executable, use the forced launcher directly:
+
+```bash
+CHATGPT_APP=/usr/bin/chatgpt ./shim/launch-chatgpt-linux-forced.sh
 ```
 
 > [!IMPORTANT]
-> **The forced launcher is required for builds from August 2026 onward (`26.727.40816`+, the repackaged builds that ship `/opt/chatgpt-desktop/.codex-linux/`).** Those builds default the Codex Micro feature gate to OFF, so the plain `launch-chatgpt-linux.sh` starts the app without the key-settings UI. The forced launcher serves a webview with the gate forced ON from localhost and also sets `CODEX_LINUX_ALLOW_RENDERER_URL_OVERRIDE=1` (the new `start.sh` pins `ELECTRON_RENDERER_URL` by default, so that variable is required for the overlay to be honored).
+> **The forced launcher is required for builds from August 2026 onward (`26.727.40816`+, the repackaged builds that ship `/opt/chatgpt-desktop/.codex-linux/`).** Those builds default the Codex Micro feature gate to OFF, so the plain `launch-chatgpt-linux.sh` starts the app without the key-settings UI. The forced launcher serves a webview with the gate forced ON from localhost and also sets `CODEX_LINUX_ALLOW_RENDERER_URL_OVERRIDE=1` (the forced launcher sets the renderer override for the temporary overlay).
 
-> Fully quit the desktop **before** launching. The new `start.sh` hands off to an existing instance if it detects one, which would bypass the Shim.
+> Fully quit the desktop **before** launching. `start.sh` checks that the bridge socket exists and then launches the forced Shim path.
 
 > [!NOTE]
 > Shim mode requires the `EnableNodeOptionsEnvironmentVariable` fuse to be enabled in the Electron build you use.
@@ -105,7 +111,7 @@ CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux-forced.sh
 On older builds the plain Shim launch also works:
 
 ```bash
-CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux.sh
+CHATGPT_APP=/usr/bin/chatgpt ./shim/launch-chatgpt-linux.sh
 ```
 
 The forced launcher serves a temporary, in-memory-patched copy of the relevant client assets from localhost. It does not modify anything under `/opt` or any other desktop installation path, and the overlay stops when the app exits. This unsupported validation path does not change server-side account entitlement and fails closed when the expected client gate cannot be found.
@@ -124,11 +130,12 @@ Install the included systemd user service. It requires no `sudo`, starts at logi
 Inspect its status and follow its logs with:
 
 ```bash
+systemctl --user enable --now codex-micro-bridge.service
 systemctl --user status codex-micro-bridge.service
 journalctl --user -u codex-micro-bridge.service -f
 ```
 
-The service supervises the physical bridge only. Launch ChatGPT Desktop through `launch-chatgpt-linux-forced.sh` after login so the app loads the Shim (the forced launcher is required on August-2026+ builds). To remove the service:
+The service supervises the physical bridge only. Once it is active, launch ChatGPT Desktop with `./start.sh`; it checks the bridge socket and loads the forced Shim path. To remove the service:
 
 ```bash
 ./scripts/uninstall-user-service.sh
@@ -230,6 +237,7 @@ The CLI still accepts a legacy development-input backend used by the inherited e
 - `src/transports/hidraw.js` — discover and open the physical USB/Bluetooth Codex Micro
 - `src/raw-bridge.js` — transparent raw-report forwarding between the app and hardware
 - `src/transports/loopback.js` — in-memory transport for tests
+- `start.sh` — start ChatGPT after the systemd bridge is running
 - `shim/launch-chatgpt-linux.sh` — Linux launch script for the ChatGPT desktop (older builds; no gate override)
 - `shim/launch-chatgpt-linux-forced.sh` — standard launcher that forces the Codex Micro feature gate ON (required on August-2026+ builds)
 - `scripts/force-codex-micro-webview.mjs` — read-only patched webview overlay server
@@ -300,8 +308,8 @@ Not automated (validated manually where noted):
 
 ### The ChatGPT desktop does not detect the device
 
-- Start the bridge first.
-- Launch the ChatGPT desktop via `launch-chatgpt-linux-forced.sh`, not normally (required on August-2026+ builds, where the gate is OFF without it).
+- Start the bridge service with `systemctl --user start codex-micro-bridge.service`.
+- Launch the ChatGPT desktop with `./start.sh` after the service is active. It checks the bridge socket before starting Electron.
 - Confirm `CHATGPT_APP` points at the executable.
 - Check the Electron fuse settings.
 - Confirm `CODEX_MICRO_SOCKET` matches in both processes.

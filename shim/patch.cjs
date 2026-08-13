@@ -172,7 +172,7 @@ function patchModule(real, opts = {}) {
     } catch {
       /* ignore */
     }
-    const devices = list.concat([{ ...FAKE_DESCRIPTOR }]);
+    const devices = list.filter((device) => device.vendorId !== FAKE_DESCRIPTOR.vendorId || device.productId !== FAKE_DESCRIPTOR.productId).concat([{ ...FAKE_DESCRIPTOR }]);
     log(`devices() returned ${devices.length} device(s), including virtual Codex Micro`);
     return devices;
   };
@@ -185,7 +185,7 @@ function patchModule(real, opts = {}) {
       } catch {
         /* ignore */
       }
-      const devices = list.concat([{ ...FAKE_DESCRIPTOR }]);
+      const devices = list.filter((device) => device.vendorId !== FAKE_DESCRIPTOR.vendorId || device.productId !== FAKE_DESCRIPTOR.productId).concat([{ ...FAKE_DESCRIPTOR }]);
       log(`devicesAsync() returned ${devices.length} device(s), including virtual Codex Micro`);
       return devices;
     };
@@ -196,12 +196,14 @@ function patchModule(real, opts = {}) {
     patched.HIDAsync = new Proxy(RealAsync, {
       get(target, prop, receiver) {
         if (prop === "open") {
-          return (openPath, openOpts) => {
-            if (isFakePath(openPath)) {
-              log(`opening virtual Codex Micro at ${openPath}`);
+          return (...args) => {
+            const [openPath, productId] = args;
+            const matchesVirtualIds = openPath === FAKE_DESCRIPTOR.vendorId && productId === FAKE_DESCRIPTOR.productId;
+            if (isFakePath(openPath) || matchesVirtualIds) {
+              log("opening virtual Codex Micro");
               return Promise.resolve(new FakeHIDAsync(socketPath));
             }
-            return RealAsync.open(openPath, openOpts);
+            return RealAsync.open(...args);
           };
         }
         return Reflect.get(target, prop, receiver);
@@ -223,8 +225,9 @@ function createVirtualOnlyModule(opts = {}) {
     devices: () => [],
     devicesAsync: async () => [],
     HIDAsync: {
-      open: async (openPath) => {
-        if (isFakePath(openPath)) return new FakeHIDAsync(socketPath);
+      open: async (...args) => {
+        const [openPath, productId] = args;
+        if (isFakePath(openPath) || (openPath === FAKE_DESCRIPTOR.vendorId && productId === FAKE_DESCRIPTOR.productId)) return new FakeHIDAsync(socketPath);
         throw unavailable;
       },
     },

@@ -37,7 +37,10 @@ test("shim: fake device is discoverable and round-trips device.status", async ()
 
   // App side: the real shim, patched over a stub node-hid.
   const stubRealNodeHid = {
-    devices: () => [{ vendorId: 0x1234, productId: 0x1, path: "real-device" }],
+    devices: () => [
+      { vendorId: 0x1234, productId: 0x1, path: "real-device" },
+      { vendorId: 0x303a, productId: 0x8360, path: "physical-codex-micro" },
+    ],
     HIDAsync: { open: async () => ({ isReal: true }) },
   };
   const patched = shim.patchModule(stubRealNodeHid, { socketPath });
@@ -52,13 +55,16 @@ test("shim: fake device is discoverable and round-trips device.status", async ()
 
   // Real devices still pass through.
   assert.ok(found.some((d) => d.path === "real-device"));
+  assert.ok(!found.some((d) => d.path === "physical-codex-micro"));
 
   // 2) Opening a non-fake path delegates to the real module.
   const real = await patched.HIDAsync.open("real-device");
   assert.equal(real.isReal, true);
 
   // 3) Open the fake device and exchange a framed device.status request.
-  const dev = await patched.HIDAsync.open(codex.path);
+  // The Work Louder SDK opens HID devices by numeric VID/PID. Keep this
+  // covered separately from the discovery descriptor's synthetic path.
+  const dev = await patched.HIDAsync.open(codex.vendorId, codex.productId);
   await once(dev, "data-ready-or-connect", dev, socketPath); // ensure socket up
 
   const reasm = new Reassembler();

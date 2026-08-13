@@ -73,10 +73,10 @@ sudo udevadm trigger --subsystem-match=hidraw
 bluetoothctl connect YOUR_CODEX_MICRO_ADDRESS
 ```
 
-先にブリッジを起動します。現在のCodex Micro Vendor `hidraw`ノードは自動検出されます。
+先にブリッジのsystemdサービスを起動します。現在のCodex Micro Vendor `hidraw`ノードは自動検出されます。
 
 ```bash
-node bin/codex-micro-emulator.js --mode shim --input codex-micro --verbose
+systemctl --user start codex-micro-bridge.service
 ```
 
 起動時に次のような出力が表示されます。
@@ -86,16 +86,22 @@ Listening for the node-hid shim on /tmp/codex-micro-vhid.sock.
 Physical Codex Micro ready at /dev/hidrawN.
 ```
 
-別のターミナルで、DesktopをShim経由で起動します。
+サービスが`active (running)`になったら、Desktopを起動します。`start.sh`はChatGPTの起動だけを行い、ブリッジを起動・停止しません。
 
 ```bash
-CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux-forced.sh
+./start.sh
+```
+
+実行ファイルを明示する場合は、forcedランチャーを直接使います。
+
+```bash
+CHATGPT_APP=/usr/bin/chatgpt ./shim/launch-chatgpt-linux-forced.sh
 ```
 
 > [!IMPORTANT]
-> **2026年8月以降のビルド（`26.727.40816` 以降、`/opt/chatgpt-desktop/.codex-linux/` を同梱する再パッケージ版）では forced ランチャーが必須です。** このビルドでは Codex Micro のフィーチャーゲートが既定で OFF のため、通常版 `launch-chatgpt-linux.sh` で起動してもキー設定 UI が表示されません。forced ランチャーはゲートを強制 ON にした webview を localhost から配信し、`CODEX_LINUX_ALLOW_RENDERER_URL_OVERRIDE=1` も設定済みです（新 `start.sh` は既定で `ELECTRON_RENDERER_URL` をピン留めするため、この環境変数が無いとオーバーレイが無視されます）。
+> **2026年8月以降のビルド（`26.727.40816` 以降、`/opt/chatgpt-desktop/.codex-linux/` を同梱する再パッケージ版）では forced ランチャーが必須です。** このビルドでは Codex Micro のフィーチャーゲートが既定で OFF のため、通常版 `launch-chatgpt-linux.sh` で起動してもキー設定 UI が表示されません。forced ランチャーはゲートを強制 ON にした webview を localhost から配信し、`CODEX_LINUX_ALLOW_RENDERER_URL_OVERRIDE=1` も設定済みです（forcedランチャーが一時オーバーレイ用のrenderer overrideを設定します）。
 
-> 起動前に Desktop を**完全に終了**してください。新 `start.sh` は既存インスタンスを検出すると、シムなしのプロセスへハンドオフします。
+> 起動前に Desktop を**完全に終了**してください。`start.sh`はブリッジのソケットを確認してから、forced Shim経路を起動します。
 
 > [!NOTE]
 > Shim モードでは、利用する Electron ビルドの `EnableNodeOptionsEnvironmentVariable` fuse が有効である必要があります。
@@ -105,7 +111,7 @@ CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux-forced.sh
 旧ビルドでは、シム注入だけの通常版も使えます。
 
 ```bash
-CHATGPT_APP=/usr/bin/chatgpt-desktop ./shim/launch-chatgpt-linux.sh
+CHATGPT_APP=/usr/bin/chatgpt ./shim/launch-chatgpt-linux.sh
 ```
 
 forced ランチャーは、対象クライアント資産をメモリ上で一時変更したコピーとしてlocalhostから配信します。`/opt`やその他のDesktopインストール先は変更せず、Desktop終了時にオーバーレイも停止します。非公式の検証用経路であり、サーバー側のアカウント権限は変更しません。対象フラグを検出できない場合は安全側に倒して起動前に失敗します。
@@ -124,11 +130,12 @@ forced ランチャーは、対象クライアント資産をメモリ上で一�
 状態とログは次のコマンドで確認できます。
 
 ```bash
+systemctl --user enable --now codex-micro-bridge.service
 systemctl --user status codex-micro-bridge.service
 journalctl --user -u codex-micro-bridge.service -f
 ```
 
-サービスが常駐させるのは物理bridgeだけです。DesktopへShimを読み込ませるため、ログイン後に`launch-chatgpt-linux-forced.sh`でDesktopを起動してください（新ビルドではforcedランチャーが必須です）。サービスを削除する場合:
+サービスが常駐させるのは物理bridgeだけです。サービスが`active`になったら、`./start.sh`でDesktopを起動してください。サービスを削除する場合:
 
 ```bash
 ./scripts/uninstall-user-service.sh
@@ -230,6 +237,7 @@ CLIには、継承したエミュレーターテスト用の開発入力バッ�
 - `src/transports/hidraw.js` — USB／Bluetooth実機の検出とオープン
 - `src/raw-bridge.js` — アプリと実機間のrawレポート透過中継
 - `src/transports/loopback.js` — テスト用インメモリトランスポート
+- `start.sh` — systemdブリッジ起動後にChatGPTを起動
 - `shim/launch-chatgpt-linux.sh` — ChatGPT デスクトップの Linux 起動スクリプト（旧ビルド用・ゲート強制ONなし）
 - `shim/launch-chatgpt-linux-forced.sh` — Codex Micro フィーチャーゲートを強制ONにする標準ランチャー（2026年8月以降のビルドで必須）
 - `scripts/force-codex-micro-webview.mjs` — 読み取り専用Webviewオーバーレイサーバー
@@ -300,8 +308,8 @@ npm run build:native:linux
 
 ### ChatGPT デスクトップがデバイスを検出しない
 
-- ブリッジを先に起動します。
-- ChatGPT デスクトップを通常起動せず、`launch-chatgpt-linux-forced.sh` で起動します（2026年8月以降のビルドでは必須。forced なしだとゲートがOFFのため設定UIが出ません）。
+- `systemctl --user start codex-micro-bridge.service`でブリッジを起動します。
+- サービスがactiveになったら`./start.sh`でChatGPTを起動します。起動前にブリッジソケットを確認します。
 - `CHATGPT_APP` が実行可能ファイルを指しているか確認します。
 - Electron の fuse 設定を確認します。
 - `CODEX_MICRO_SOCKET` が両プロセスで一致しているか確認します。

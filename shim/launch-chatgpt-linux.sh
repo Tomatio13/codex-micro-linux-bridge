@@ -29,7 +29,7 @@ echo "Launching ChatGPT with the Codex Micro shim"
 echo "  app    : $APP"
 echo "  socket : $CODEX_MICRO_SOCKET"
 echo "  log    : $CODEX_MICRO_SHIM_LOG"
-echo "Make sure the bridge is running: node bin/codex-micro-emulator.js --mode shim"
+echo "Make sure the bridge is running: systemctl --user start codex-micro-bridge.service"
 echo "If detection fails, verify Electron's EnableNodeOptionsEnvironmentVariable fuse."
 
 if [ "${1:-}" = "--dry-run" ]; then

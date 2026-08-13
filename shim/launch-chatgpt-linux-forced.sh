@@ -2,27 +2,34 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
-INSTALL_DIR="${CHATGPT_INSTALL_DIR:-/opt/chatgpt-desktop}"
-WEBVIEW_ROOT="${CHATGPT_WEBVIEW_ROOT:-$INSTALL_DIR/content/webview}"
+INSTALL_DIR="${CHATGPT_INSTALL_DIR:-/usr/lib/chatgpt}"
+WEBVIEW_ROOT="${CHATGPT_WEBVIEW_ROOT:-}"
+CHATGPT_ASAR="${CHATGPT_ASAR:-$INSTALL_DIR/resources/app.asar}"
 STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/codex-micro-emulator"
 
 if [ -z "${CHATGPT_APP:-}" ]; then
-  if command -v chatgpt-desktop >/dev/null 2>&1; then
+  if command -v chatgpt >/dev/null 2>&1; then
+    CHATGPT_APP="$(command -v chatgpt)"
+  elif command -v chatgpt-desktop >/dev/null 2>&1; then
     CHATGPT_APP="$(command -v chatgpt-desktop)"
-  elif [ -x "$INSTALL_DIR/start.sh" ]; then
-    CHATGPT_APP="$INSTALL_DIR/start.sh"
+  elif [ -x "$INSTALL_DIR/ChatGPT" ]; then
+    CHATGPT_APP="$INSTALL_DIR/ChatGPT"
   fi
   export CHATGPT_APP
 fi
 
-if [ ! -d "$WEBVIEW_ROOT" ] || [ ! -f "$WEBVIEW_ROOT/index.html" ]; then
-  echo "ChatGPT webview files not found: $WEBVIEW_ROOT" >&2
-  echo "Set CHATGPT_INSTALL_DIR or CHATGPT_WEBVIEW_ROOT to the installed Linux build." >&2
+if [ -n "$WEBVIEW_ROOT" ]; then
+  OVERLAY_ARGS=(--root "$WEBVIEW_ROOT")
+elif [ -f "$CHATGPT_ASAR" ]; then
+  OVERLAY_ARGS=(--asar "$CHATGPT_ASAR")
+else
+  echo "ChatGPT webview files not found." >&2
+  echo "Set CHATGPT_WEBVIEW_ROOT for an extracted webview or CHATGPT_ASAR for the Official app.asar." >&2
   exit 1
 fi
 
 if [ "${1:-}" = "--dry-run" ]; then
-  REPLACEMENTS="$(node "$DIR/scripts/force-codex-micro-webview.mjs" --root "$WEBVIEW_ROOT" --check-only)"
+  REPLACEMENTS="$(node "$DIR/scripts/force-codex-micro-webview.mjs" "${OVERLAY_ARGS[@]}" --check-only)"
   echo "ChatGPT Codex Micro forced launcher dry run"
   echo "  patches: $REPLACEMENTS"
   echo "This is a temporary unsupported override; /opt is not modified."
@@ -31,7 +38,7 @@ if [ "${1:-}" = "--dry-run" ]; then
 fi
 
 if [ "${CODEX_MICRO_ALLOW_RUNNING_APP:-0}" != "1" ]; then
-  if pgrep -f "$INSTALL_DIR/electron" >/dev/null 2>&1; then
+  if pgrep -f "$INSTALL_DIR/ChatGPT" >/dev/null 2>&1 || pgrep -f "$INSTALL_DIR/electron" >/dev/null 2>&1; then
     echo "ChatGPT Desktop is already running." >&2
     echo "Quit it completely before using the forced Codex Micro launcher." >&2
     exit 1
@@ -54,7 +61,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 node "$DIR/scripts/force-codex-micro-webview.mjs" \
-  --root "$WEBVIEW_ROOT" \
+  "${OVERLAY_ARGS[@]}" \
   --host 127.0.0.1 \
   --port 0 \
   --ready-file "$READY_FILE" \
@@ -93,4 +100,5 @@ echo "This is a temporary unsupported override; /opt is not modified."
 
 CODEX_LINUX_ALLOW_RENDERER_URL_OVERRIDE=1 \
 ELECTRON_RENDERER_URL="$OVERLAY_URL" \
+CODEX_MICRO_RENDERER_URL="$OVERLAY_URL" \
   "$DIR/shim/launch-chatgpt-linux.sh" "$@"
